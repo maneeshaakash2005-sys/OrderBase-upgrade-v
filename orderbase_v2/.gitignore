@@ -1,0 +1,18 @@
+﻿# Supabase secrets
+js/config.js
+js/config.private.js
+*.secret.js
+*.private.js
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
