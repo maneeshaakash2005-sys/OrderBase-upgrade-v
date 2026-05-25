@@ -8,8 +8,23 @@
 <body>
     <div id="app">Loading Admin Panel...</div>
     <script>
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        document.getElementById('app').innerHTML = '<h1>Admin Dashboard</h1><p>Connected to Supabase securely!</p>';
+        // Use the config from config.js (don't redeclare)
+        // Check if SUPABASE_URL and SUPABASE_ANON_KEY are available
+        if (typeof SUPABASE_URL !== 'undefined' && typeof SUPABASE_ANON_KEY !== 'undefined') {
+            const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            document.getElementById('app').innerHTML = '<h1>Admin Dashboard</h1><p>Connected to Supabase!</p><button onclick="testConnection()">Test Connection</button>';
+            
+            window.testConnection = async function() {
+                const { data, error } = await supabaseClient.from('clients').select('count');
+                if(error) {
+                    document.getElementById('app').innerHTML += '<p style="color:red">Error: ' + error.message + '</p>';
+                } else {
+                    document.getElementById('app').innerHTML += '<p style="color:green">✅ Connected successfully!</p>';
+                }
+            };
+        } else {
+            document.getElementById('app').innerHTML = '<h1>Configuration Error</h1><p>config.js not loaded properly. Make sure js/config.js exists.</p>';
+        }
     </script>
 </body>
 </html>
