@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Order</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--primary:#185fa5;--primary-bg:#e6f1fb;--bg:#f5f6fa;--surface:#fff;--border:#e8eaf0;--text:#1a1a2e;--text2:#5a5a7a;--text3:#9a9ab0;--green:#2d8a4e;--green-bg:#e8f5ed;--amber:#c47c0a;--amber-bg:#fef3d7;--red:#c0392b;--red-bg:#fdecea;--radius:12px;--shadow:0 2px 12px rgba(0,0,0,.08)}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+/* Header */
+.shop-header{padding:0;position:relative;overflow:hidden}
+.shop-header-bg{height:140px;background:linear-gradient(135deg,var(--primary) 0%,#1a3a6b 100%);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px}
+.shop-logo{width:64px;height:64px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:var(--primary);box-shadow:0 4px 16px rgba(0,0,0,.2)}
+.shop-name{font-size:20px;font-weight:700;color:#fff}
+.shop-desc{font-size:12px;color:rgba(255,255,255,.7)}
+/* Nav tabs */
+.tab-nav{display:flex;background:var(--surface);border-bottom:1px solid var(--border);padding:0 16px;overflow-x:auto;gap:0}
+.tab-btn{padding:12px 16px;font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s}
+.tab-btn.active{color:var(--primary);border-bottom-color:var(--primary)}
+/* Content */
+.content{max-width:680px;margin:0 auto;padding:16px}
+/* Product grid */
+.product-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media(min-width:520px){.product-grid{grid-template-columns:repeat(3,1fr)}}
+.product-card{background:var(--surface);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);cursor:pointer;transition:transform .15s,box-shadow .15s;position:relative}
+.product-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.12)}
+.product-card.in-cart{outline:2px solid var(--primary)}
+.product-img{width:100%;aspect-ratio:1;object-fit:cover;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:32px}
+.product-img img{width:100%;height:100%;object-fit:cover}
+.product-img-placeholder{width:100%;aspect-ratio:1;background:linear-gradient(135deg,#e8eaf0,#f5f6fa);display:flex;align-items:center;justify-content:center;font-size:36px}
+.product-info{padding:10px}
+.product-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px}
+.product-desc{font-size:11px;color:var(--text3);margin-bottom:6px;line-height:1.4}
+.product-price{font-size:14px;font-weight:700;color:var(--primary)}
+.product-badge{position:absolute;top:8px;right:8px;background:var(--primary);color:#fff;font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px}
+.add-btn{width:28px;height:28px;border-radius:50%;background:var(--primary);color:#fff;border:none;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;float:right;margin-top:-4px}
+/* Cart */
+.cart-bar{position:fixed;bottom:0;left:0;right:0;background:var(--primary);color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;z-index:50;transform:translateY(100%);transition:transform .25s;box-shadow:0 -4px 20px rgba(0,0,0,.15)}
+.cart-bar.show{transform:translateY(0)}
+.cart-bar-info{font-size:13px}
+.cart-bar-count{font-size:18px;font-weight:700}
+.cart-bar-btn{background:#fff;color:var(--primary);border:none;padding:10px 20px;border-radius:99px;font-size:14px;font-weight:600;cursor:pointer}
+/* Cart page */
+.cart-item{background:var(--surface);border-radius:var(--radius);padding:14px;display:flex;gap:12px;align-items:center;margin-bottom:10px;box-shadow:var(--shadow)}
+.cart-item-img{width:56px;height:56px;border-radius:8px;object-fit:cover;background:var(--bg);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden}
+.cart-item-img img{width:100%;height:100%;object-fit:cover}
+.cart-item-name{font-size:14px;font-weight:600;margin-bottom:2px}
+.cart-item-meta{font-size:12px;color:var(--text3)}
+.cart-item-price{font-size:14px;font-weight:700;color:var(--primary)}
+.qty-ctrl{display:flex;align-items:center;gap:8px;margin-top:6px}
+.qty-btn{width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--bg);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text)}
+.qty-num{font-size:14px;font-weight:600;min-width:20px;text-align:center}
+.remove-btn{margin-left:auto;color:var(--red);background:none;border:none;font-size:20px;cursor:pointer;padding:4px}
+/* Size selector */
+.size-grid{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.size-chip{padding:4px 12px;border:1px solid var(--border);border-radius:99px;font-size:12px;font-weight:500;cursor:pointer;transition:all .1s}
+.size-chip.selected{background:var(--primary);color:#fff;border-color:var(--primary)}
+/* Forms */
+.section-title{font-size:13px;font-weight:700;color:var(--text);margin:18px 0 10px;letter-spacing:.01em}
+.form-group{margin-bottom:14px}
+label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:5px}
+input,select,textarea{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text);font-family:inherit;transition:border .15s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)}
+.required{color:var(--red)}
+/* Payment options */
+.pay-options{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px}
+.pay-opt{border:2px solid var(--border);border-radius:10px;padding:12px 8px;text-align:center;cursor:pointer;transition:all .15s}
+.pay-opt.selected{border-color:var(--primary);background:var(--primary-bg)}
+.pay-opt .pay-icon{font-size:24px;margin-bottom:4px}
+.pay-opt .pay-label{font-size:11px;font-weight:600;color:var(--text2)}
+.pay-opt.selected .pay-label{color:var(--primary)}
+/* Slip upload */
+.slip-upload{border:2px dashed var(--border);border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:all .15s;background:var(--bg)}
+.slip-upload:hover{border-color:var(--primary);background:var(--primary-bg)}
+.slip-upload input{display:none}
+.slip-preview{width:100%;max-height:200px;object-fit:contain;border-radius:8px;margin-top:10px}
+/* Order summary */
+.summary-card{background:var(--surface);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);margin-bottom:16px}
+.summary-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px}
+.summary-row:last-child{border:none;font-size:15px;font-weight:700;padding-top:10px}
+/* Buttons */
+.btn-main{width:100%;padding:15px;background:var(--primary);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .15s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-main:hover{opacity:.88}
+.btn-main:disabled{opacity:.5;cursor:not-allowed}
+.btn-outline{width:100%;padding:13px;background:transparent;color:var(--primary);border:2px solid var(--primary);border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:10px}
+/* Steps */
+.steps-bar{display:flex;padding:16px;gap:0;background:var(--surface);border-bottom:1px solid var(--border)}
+.step-dot{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;position:relative}
+.step-dot:not(:last-child)::after{content:'';position:absolute;top:12px;left:60%;width:80%;height:2px;background:var(--border)}
+.step-dot.done:not(:last-child)::after{background:var(--primary)}
+.step-circle{width:24px;height:24px;border-radius:50%;background:var(--border);color:var(--text3);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;z-index:1}
+.step-dot.active .step-circle{background:var(--primary);color:#fff}
+.step-dot.done .step-circle{background:var(--green);color:#fff}
+.step-label{font-size:10px;color:var(--text3);font-weight:500}
+.step-dot.active .step-label{color:var(--primary);font-weight:600}
+/* Success */
+.success-wrap{text-align:center;padding:40px 20px}
+.success-icon{width:72px;height:72px;background:var(--green-bg);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:32px}
+/* Alerts */
+.alert{padding:12px 14px;border-radius:10px;font-size:13px;margin-bottom:12px}
+.alert-red{background:var(--red-bg);color:var(--red);border:1px solid #f5a89a}
+.alert-amber{background:var(--amber-bg);color:var(--amber);border:1px solid #f5d87a}
+/* Spinner */
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-full{text-align:center;padding:60px;color:var(--text3)}
+.spin-blue{border-color:var(--border);border-top-color:var(--primary);width:28px;height:28px}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="loading-full"><div class="spinner spin-blue" style="margin:0 auto 12px"></div><div>Loading shop...</div></div>
+</div>
+
+<div class="cart-bar" id="cart-bar">
+  <div class="cart-bar-info">
+    <div class="cart-bar-count" id="cart-bar-count">0 items</div>
+    <div style="font-size:12px;opacity:.8" id="cart-bar-total">LKR 0</div>
+  </div>
+  <button class="cart-bar-btn" onclick="goToCheckout()">View Cart →</button>
+</div>
+
+<script>
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let CLIENT = null;
+let PRODUCTS = [];
+let CART = []; // [{product, size, qty}]
+let STEP = 1; // 1=shop, 2=cart, 3=details, 4=payment, 5=confirm
+let SLIP_FILE = null;
+let SLIP_URL = null;
+
+const params = new URLSearchParams(location.search);
+const formKey = params.get('client');
+
+async function init() {
+  if (!formKey) { showErr('No shop link', 'Ask the shop for the correct order link.'); return; }
+  const { data: client, error } = await sb.from('clients').select('*').eq('form_key', formKey).single();
+  if (error || !client) { showErr('Shop not found', 'This link is invalid or expired.'); return; }
+  if (client.status === 'Past Due' || client.status === 'Cancelled') { showErr('Shop unavailable', 'This shop is temporarily closed. Contact them directly.'); return; }
+  CLIENT = client;
+  document.title = client.name + ' — Order';
+  const { data: prods } = await sb.from('products').select('*').eq('client_id', client.id).eq('active', true).order('category');
+  PRODUCTS = prods || [];
+  renderShop();
+}
+
+// ── RENDER SHOP ───────────────────────────────────────────────
+function renderShop() {
+  STEP = 1;
+  const color = CLIENT.branding_color || '#185fa5';
+  const cats = [...new Set(PRODUCTS.map(p => p.category || 'Other'))];
+  const initials = CLIENT.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+
+  document.getElementById('app').innerHTML = `
+    <div class="shop-header">
+      <div class="shop-header-bg" style="background:linear-gradient(135deg,${color} 0%,${darken(color)} 100%)">
+        ${CLIENT.branding_logo
+          ? `<img src="${CLIENT.branding_logo}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;box-shadow:0 4px 16px rgba(0,0,0,.2)">`
+          : `<div class="shop-logo" style="color:${color}">${initials}</div>`}
+        <div class="shop-name">${CLIENT.name}</div>
+        ${CLIENT.shop_description ? `<div class="shop-desc">${CLIENT.shop_description}</div>` : ''}
+      </div>
+    </div>
+    <div class="tab-nav" id="cat-tabs">
+      <div class="tab-btn active" onclick="filterCat('',this)">All</div>
+      ${cats.map(c=>`<div class="tab-btn" onclick="filterCat('${c}',this)">${c}</div>`).join('')}
+    </div>
+    <div class="content">
+      <div class="product-grid" id="product-grid">
+        ${renderProductCards(PRODUCTS)}
+      </div>
+    </div>
+  `;
+  updateCartBar();
+}
+
+function renderProductCards(prods) {
+  if (!prods.length) return '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text3)">No products available</div>';
+  return prods.map(p => {
+    const inCart = CART.filter(c=>c.product.id===p.id).reduce((a,c)=>a+c.qty,0);
+    return `
+      <div class="product-card ${inCart>0?'in-cart':''}" onclick="openProduct('${p.id}')">
+        ${inCart>0?`<div class="product-badge">${inCart} in cart</div>`:''}
+        ${p.image_url
+          ? `<div class="product-img"><img src="${p.image_url}" alt="${p.name}" loading="lazy"></div>`
+          : `<div class="product-img-placeholder">${categoryEmoji(p.category)}</div>`}
+        <div class="product-info">
+          <div class="product-name">${p.name}</div>
+          ${p.description?`<div class="product-desc">${p.description}</div>`:''}
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div class="product-price">LKR ${p.price.toLocaleString()}</div>
+            <button class="add-btn" style="background:${CLIENT.branding_color||'#185fa5'}" onclick="event.stopPropagation();quickAdd('${p.id}')">+</button>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function filterCat(cat, el) {
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  const filtered = cat ? PRODUCTS.filter(p=>p.category===cat) : PRODUCTS;
+  document.getElementById('product-grid').innerHTML = renderProductCards(filtered);
+}
+
+// ── PRODUCT MODAL (size picker) ───────────────────────────────
+function openProduct(id) {
+  const p = PRODUCTS.find(x=>x.id===id);
+  if (!p) return;
+  const color = CLIENT.branding_color || '#185fa5';
+  const sizes = p.has_sizes && p.sizes ? p.sizes.split(',').map(s=>s.trim()) : [];
+
+  const modal = document.createElement('div');
+  modal.id = 'prod-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:flex-end;justify-content:center';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:520px;padding:20px;max-height:90vh;overflow-y:auto">
+      ${p.image_url?`<img src="${p.image_url}" style="width:100%;height:200px;object-fit:cover;border-radius:12px;margin-bottom:14px">`:`<div style="width:100%;height:160px;background:var(--bg);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:60px;margin-bottom:14px">${categoryEmoji(p.category)}</div>`}
+      <div style="font-size:18px;font-weight:700;margin-bottom:4px">${p.name}</div>
+      <div style="font-size:20px;font-weight:700;color:${color};margin-bottom:8px">LKR ${p.price.toLocaleString()}</div>
+      ${p.description?`<div style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.6">${p.description}</div>`:''}
+      ${sizes.length?`
+        <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">Select size <span style="color:var(--red)">*</span></div>
+        <div class="size-grid" id="size-grid">
+          ${sizes.map(s=>`<div class="size-chip" onclick="selectSize(this,'${s}')">${s}</div>`).join('')}
+        </div>
+        <div id="size-err" style="font-size:12px;color:var(--red);margin-top:4px;display:none">Please select a size</div>
+      `:''}
+      <div style="display:flex;align-items:center;gap:12px;margin:14px 0">
+        <div style="font-size:13px;font-weight:600;color:var(--text2)">Quantity</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-left:auto">
+          <button class="qty-btn" onclick="modalQty(-1)">−</button>
+          <span class="qty-num" id="modal-qty">1</span>
+          <button class="qty-btn" onclick="modalQty(1)">+</button>
+        </div>
+      </div>
+      <button class="btn-main" style="background:${color}" onclick="addToCartFromModal('${p.id}')">Add to cart</button>
+      <button class="btn-outline" style="color:${color};border-color:${color};margin-top:8px" onclick="closeModal()">Cancel</button>
+    </div>
+  `;
+  modal.addEventListener('click', e=>{if(e.target===modal)closeModal();});
+  document.body.appendChild(modal);
+}
+
+let modalQtyVal = 1;
+let selectedSize = '';
+function modalQty(d){modalQtyVal=Math.max(1,Math.min(50,modalQtyVal+d));const el=document.getElementById('modal-qty');if(el)el.textContent=modalQtyVal;}
+function selectSize(el,s){document.querySelectorAll('.size-chip').forEach(c=>c.classList.remove('selected'));el.classList.add('selected');selectedSize=s;const err=document.getElementById('size-err');if(err)err.style.display='none';}
+function closeModal(){const m=document.getElementById('prod-modal');if(m)m.remove();modalQtyVal=1;selectedSize='';}
+
+function addToCartFromModal(id) {
+  const p = PRODUCTS.find(x=>x.id===id);
+  const sizes = p.has_sizes && p.sizes ? p.sizes.split(',').map(s=>s.trim()) : [];
+  if (sizes.length && !selectedSize) { const err=document.getElementById('size-err');if(err)err.style.display='block';return; }
+  addToCart(p, selectedSize, modalQtyVal);
+  closeModal();
+  renderShop(); // refresh badges
+}
+
+function quickAdd(id) {
+  const p = PRODUCTS.find(x=>x.id===id);
+  if (p.has_sizes && p.sizes) { openProduct(id); return; }
+  addToCart(p, '', 1);
+  updateCartBar();
+  // update badge
+  document.querySelectorAll('.product-card').forEach(card => {
+    const cnt = CART.filter(c=>c.product.id===p.id).reduce((a,c)=>a+c.qty,0);
+    const badge = card.querySelector('.product-badge');
+    if (card.onclick && card.getAttribute('onclick')?.includes(p.id)) {
+      if (cnt>0) card.classList.add('in-cart'); else card.classList.remove('in-cart');
+    }
+  });
+  renderShop();
+}
+
+function addToCart(product, size, qty) {
+  const key = product.id + '|' + size;
+  const existing = CART.find(c=>c.product.id===product.id && c.size===size);
+  if (existing) existing.qty += qty;
+  else CART.push({product, size, qty});
+  updateCartBar();
+}
+
+function updateCartBar() {
+  const total = CART.reduce((a,c)=>a+(c.product.price*c.qty),0);
+  const count = CART.reduce((a,c)=>a+c.qty,0);
+  document.getElementById('cart-bar-count').textContent = count + ' item' + (count!==1?'s':'');
+  document.getElementById('cart-bar-total').textContent = 'LKR ' + total.toLocaleString();
+  document.getElementById('cart-bar').classList.toggle('show', count>0);
+}
+
+// ── CART PAGE ─────────────────────────────────────────────────
+function goToCheckout() {
+  STEP = 2;
+  const color = CLIENT.branding_color || '#185fa5';
+  document.getElementById('app').innerHTML = `
+    ${stepsBar(2)}
+    <div class="content" style="padding-bottom:80px">
+      <div class="section-title">Your cart</div>
+      <div id="cart-list">${renderCartItems()}</div>
+      <div class="summary-card" id="cart-summary">${renderSummary()}</div>
+      <button class="btn-main" style="background:${color}" onclick="goDetails()">Continue →</button>
+      <button class="btn-outline" style="color:${color};border-color:${color};margin-top:10px" onclick="renderShop()">← Add more items</button>
+    </div>
+  `;
+}
+
+function renderCartItems() {
+  if (!CART.length) return '<div style="text-align:center;padding:30px;color:var(--text3)">Cart is empty</div>';
+  return CART.map((item,i) => `
+    <div class="cart-item">
+      <div class="cart-item-img">
+        ${item.product.image_url?`<img src="${item.product.image_url}" alt="">`:`<span>${categoryEmoji(item.product.category)}</span>`}
+      </div>
+      <div style="flex:1">
+        <div class="cart-item-name">${item.product.name}</div>
+        <div class="cart-item-meta">${item.size?'Size: '+item.size+' · ':''}LKR ${item.product.price.toLocaleString()} each</div>
+        <div class="qty-ctrl">
+          <button class="qty-btn" onclick="changeCartQty(${i},-1)">−</button>
+          <span class="qty-num">${item.qty}</span>
+          <button class="qty-btn" onclick="changeCartQty(${i},1)">+</button>
+          <div class="cart-item-price" style="margin-left:8px">LKR ${(item.product.price*item.qty).toLocaleString()}</div>
+        </div>
+      </div>
+      <button class="remove-btn" onclick="removeCartItem(${i})">×</button>
+    </div>
+  `).join('');
+}
+
+function renderSummary() {
+  const subtotal = CART.reduce((a,c)=>a+(c.product.price*c.qty),0);
+  const count = CART.reduce((a,c)=>a+c.qty,0);
+  return `
+    <div class="summary-row"><span style="color:var(--text2)">${count} item(s)</span><span></span></div>
+    <div class="summary-row"><span style="color:var(--text2)">Subtotal</span><span>LKR ${subtotal.toLocaleString()}</span></div>
+    <div class="summary-row"><span>Total</span><span style="color:var(--primary)">LKR ${subtotal.toLocaleString()}</span></div>
+  `;
+}
+
+function changeCartQty(i,d){CART[i].qty=Math.max(1,CART[i].qty+d);document.getElementById('cart-list').innerHTML=renderCartItems();document.getElementById('cart-summary').innerHTML=renderSummary();updateCartBar();}
+function removeCartItem(i){CART.splice(i,1);if(!CART.length){renderShop();return;}document.getElementById('cart-list').innerHTML=renderCartItems();document.getElementById('cart-summary').innerHTML=renderSummary();updateCartBar();}
+
+// ── DETAILS PAGE ──────────────────────────────────────────────
+function goDetails() {
+  if (!CART.length) return;
+  STEP = 3;
+  const color = CLIENT.branding_color || '#185fa5';
+  document.getElementById('app').innerHTML = `
+    ${stepsBar(3)}
+    <div class="content" style="padding-bottom:80px">
+      <div class="section-title">Your details</div>
+      <div class="form-group"><label>Full name <span class="required">*</span></label><input id="f-name" type="text" placeholder="Kasun Silva" autocomplete="name"></div>
+      <div class="form-group"><label>Phone number <span class="required">*</span></label><input id="f-phone" type="tel" placeholder="+94 77 000 0000" autocomplete="tel"></div>
+      <div class="form-group"><label>Email (optional)</label><input id="f-email" type="email" placeholder="kasun@email.com" autocomplete="email"></div>
+      <div class="form-group"><label>Delivery address <span class="required">*</span></label><textarea id="f-addr" rows="3" placeholder="No. 12, Galle Road, Colombo 03"></textarea></div>
+      <div class="form-group"><label>Special notes (optional)</label><input id="f-notes" placeholder="e.g. No nuts, gift wrap, call before delivery"></div>
+      <div id="det-err"></div>
+      <button class="btn-main" style="background:${color}" onclick="goPayment()">Continue to payment →</button>
+      <button class="btn-outline" style="color:${color};border-color:${color};margin-top:10px" onclick="goToCheckout()">← Back to cart</button>
+    </div>
+  `;
+}
+
+function goPayment() {
+  const name = document.getElementById('f-name').value.trim();
+  const phone = document.getElementById('f-phone').value.trim();
+  const addr = document.getElementById('f-addr').value.trim();
+  if (!name||!phone||!addr) { document.getElementById('det-err').innerHTML='<div class="alert alert-red">Please fill in name, phone and address.</div>'; return; }
+  window._cust = { name, phone, email: document.getElementById('f-email').value.trim(), addr, notes: document.getElementById('f-notes').value.trim() };
+  STEP = 4;
+  const color = CLIENT.branding_color || '#185fa5';
+  document.getElementById('app').innerHTML = `
+    ${stepsBar(4)}
+    <div class="content" style="padding-bottom:80px">
+      <div class="section-title">Payment method</div>
+      <div class="pay-options">
+        <div class="pay-opt selected" id="pay-cod" onclick="selectPay('COD')">
+          <div class="pay-icon">💵</div><div class="pay-label">Cash on Delivery</div>
+        </div>
+        <div class="pay-opt" id="pay-slip" onclick="selectPay('BankSlip')">
+          <div class="pay-icon">🏦</div><div class="pay-label">Bank Transfer</div>
+        </div>
+      </div>
+      <div id="slip-section" style="display:none">
+        <div class="alert alert-amber">Transfer to:<br><strong>Bank: Commercial Bank</strong><br><strong>Account: 1234567890</strong><br><strong>Name: ${CLIENT.name}</strong><br><br>Upload your bank slip below after transferring.</div>
+        <label class="slip-upload" id="slip-upload-area" onclick="document.getElementById('slip-input').click()">
+          <input type="file" id="slip-input" accept="image/*" onchange="previewSlip(this)">
+          <div style="font-size:28px;margin-bottom:6px">📎</div>
+          <div style="font-size:13px;font-weight:600;color:var(--text2)">Tap to upload bank slip</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:3px">JPG, PNG — max 5MB</div>
+          <img id="slip-img" class="slip-preview" style="display:none">
+        </label>
+      </div>
+      <div class="summary-card">
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px">Order summary</div>
+        ${CART.map(c=>`<div class="summary-row"><span style="color:var(--text2)">${c.product.name}${c.size?' ('+c.size+')':''} ×${c.qty}</span><span>LKR ${(c.product.price*c.qty).toLocaleString()}</span></div>`).join('')}
+        <div class="summary-row"><span>Total</span><span style="color:var(--primary)">LKR ${CART.reduce((a,c)=>a+(c.product.price*c.qty),0).toLocaleString()}</span></div>
+      </div>
+      <div id="pay-err"></div>
+      <button class="btn-main" style="background:${color}" id="confirm-btn" onclick="submitOrder()">✓ Confirm order</button>
+      <button class="btn-outline" style="color:${color};border-color:${color};margin-top:10px" onclick="goDetails()">← Back</button>
+    </div>
+  `;
+  window._payMethod = 'COD';
+}
+
+function selectPay(method) {
+  window._payMethod = method;
+  document.querySelectorAll('.pay-opt').forEach(el=>el.classList.remove('selected'));
+  document.getElementById('pay-'+method.toLowerCase()).classList.add('selected');
+  document.getElementById('slip-section').style.display = method==='BankSlip'?'block':'none';
+}
+
+function previewSlip(input) {
+  const file = input.files[0];
+  if (!file) return;
+  SLIP_FILE = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = document.getElementById('slip-img');
+    img.src = e.target.result;
+    img.style.display = 'block';
+    document.querySelector('.slip-upload div:nth-child(2)').textContent = '✓ Slip uploaded';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function submitOrder() {
+  const btn = document.getElementById('confirm-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Placing order...';
+
+  if (window._payMethod === 'BankSlip' && SLIP_FILE) {
+    btn.innerHTML = '<span class="spinner"></span> Uploading slip...';
+    const fname = Date.now() + '_' + SLIP_FILE.name;
+    const { data: uploadData, error: upErr } = await sb.storage.from('slips').upload(fname, SLIP_FILE, { contentType: SLIP_FILE.type });
+    if (!upErr) {
+      const { data: urlData } = sb.storage.from('slips').getPublicUrl(fname);
+      SLIP_URL = urlData.publicUrl;
+    }
+  }
+
+  const subtotal = CART.reduce((a,c)=>a+(c.product.price*c.qty),0);
+  const items = CART.map(c=>({
+    product_id: c.product.id,
+    product_name: c.product.name,
+    size: c.size||null,
+    qty: c.qty,
+    unit_price: c.product.price,
+    line_total: c.product.price*c.qty
+  }));
+
+  const { data, error } = await sb.from('orders').insert({
+    client_id: CLIENT.id,
+    customer_name: window._cust.name,
+    customer_phone: window._cust.phone,
+    customer_address: window._cust.addr,
+    product_name: items.map(i=>i.product_name+(i.size?' ('+i.size+')':'')).join(', '),
+    quantity: CART.reduce((a,c)=>a+c.qty,0),
+    unit_price: subtotal,
+    items: items,
+    subtotal: subtotal,
+    notes: window._cust.notes||null,
+    payment_method: window._payMethod,
+    payment_status: window._payMethod==='BankSlip'&&SLIP_URL?'Slip Uploaded':'Pending',
+    bank_slip_url: SLIP_URL||null,
+    status: 'Pending'
+  }).select().single();
+
+  if (error) {
+    document.getElementById('pay-err').innerHTML=`<div class="alert alert-red">Error: ${error.message}</div>`;
+    btn.disabled=false;btn.innerHTML='✓ Confirm order';return;
+  }
+  showSuccess(data);
+}
+
+function showSuccess(order) {
+  const color = CLIENT.branding_color || '#185fa5';
+  document.getElementById('app').innerHTML = `
+    <div class="success-wrap">
+      <div class="success-icon">✅</div>
+      <div style="font-size:22px;font-weight:700;margin-bottom:8px">Order placed!</div>
+      <div style="font-size:14px;color:var(--text2);margin-bottom:24px">Thank you, ${window._cust.name}!<br>${CLIENT.name} will contact you soon.</div>
+      <div class="summary-card" style="text-align:left">
+        <div class="summary-row"><span style="color:var(--text2)">Order #</span><span style="font-family:monospace;font-weight:700">ORD-${String(order.order_number).padStart(3,'0')}</span></div>
+        <div class="summary-row"><span style="color:var(--text2)">Items</span><span>${CART.length} product(s)</span></div>
+        <div class="summary-row"><span style="color:var(--text2)">Total</span><span style="font-weight:700;color:${color}">LKR ${order.subtotal.toLocaleString()}</span></div>
+        <div class="summary-row"><span style="color:var(--text2)">Payment</span><span>${order.payment_method==='COD'?'💵 Cash on delivery':'🏦 Bank transfer'}</span></div>
+        <div class="summary-row"><span style="color:var(--text2)">Status</span><span style="color:var(--amber);font-weight:500">⏳ Pending</span></div>
+      </div>
+      <div style="font-size:12px;color:var(--text3);margin-top:8px">📸 Screenshot this page to save your order number</div>
+      <button class="btn-main" style="background:${color};margin-top:20px" onclick="location.reload()">Place another order</button>
+    </div>
+  `;
+  CART = [];
+  document.getElementById('cart-bar').classList.remove('show');
+}
+
+// ── HELPERS ───────────────────────────────────────────────────
+function stepsBar(active) {
+  const steps = ['Shop','Cart','Details','Payment'];
+  return `<div class="steps-bar">${steps.map((s,i)=>{
+    const n=i+1;
+    const cls=n<active?'done':n===active?'active':'';
+    return `<div class="step-dot ${cls}"><div class="step-circle">${n<active?'✓':n}</div><div class="step-label">${s}</div></div>`;
+  }).join('')}</div>`;
+}
+
+function categoryEmoji(cat) {
+  const map={'Whole cakes':'🎂','Slices':'🍰','Cupcakes':'🧁','Sarees':'👘','Shirts':'👔','Dresses':'👗','Shoes':'👟','Bags':'👜','Food':'🍱','Drinks':'🥤','Jewellery':'💍'};
+  return map[cat] || '📦';
+}
+
+function darken(hex) {
+  try{const n=parseInt(hex.slice(1),16);return '#'+[n>>16,n>>8&255,n&255].map(v=>Math.max(0,v-40).toString(16).padStart(2,'0')).join('');}catch{return '#0f2d52';}
+}
+
+function showErr(title, msg) {
+  document.getElementById('app').innerHTML = `<div style="text-align:center;padding:80px 24px;color:var(--text3)"><div style="font-size:40px;margin-bottom:12px">⚠️</div><div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px">${title}</div><div style="font-size:14px">${msg}</div></div>`;
+}
+
+init();
+</script>
+</body>
+</html>
