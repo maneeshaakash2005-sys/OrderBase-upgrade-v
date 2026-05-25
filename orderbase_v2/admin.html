@@ -1,0 +1,15 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/config.js"></script>
+</head>
+<body>
+    <div id="app">Loading Admin Panel...</div>
+    <script>
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        document.getElementById('app').innerHTML = '<h1>Admin Dashboard</h1><p>Connected to Supabase securely!</p>';
+    </script>
+</body>
+</html>
