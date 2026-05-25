@@ -1,30 +1,673 @@
-﻿<!DOCTYPE html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <title>Admin Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/config.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OrderBase Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f5f6fa;--surface:#fff;--border:#e8eaf0;--border2:#d0d2de;--text:#1a1a2e;--text2:#5a5a7a;--text3:#9a9ab0;--primary:#185fa5;--primary-bg:#e6f1fb;--green:#2d8a4e;--green-bg:#e8f5ed;--amber:#c47c0a;--amber-bg:#fef3d7;--red:#c0392b;--red-bg:#fdecea;--purple:#5b3fd4;--purple-bg:#f0eeff;--radius:10px;--shadow:0 2px 10px rgba(0,0,0,.07)}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+.app{display:flex;height:100vh}
+.sidebar{width:220px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}
+.sidebar-header{padding:18px 16px 14px;border-bottom:1px solid var(--border)}
+.sidebar-header .logo{font-size:17px;font-weight:800;background:linear-gradient(135deg,#185fa5,#5b3fd4);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sidebar-header .sub{font-size:11px;color:var(--text3);margin-top:2px}
+.nav-section{font-size:10px;font-weight:700;color:var(--text3);padding:14px 16px 4px;letter-spacing:.09em;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 16px;font-size:13px;color:var(--text2);cursor:pointer;transition:all .1s;border-left:2px solid transparent}
+.nav-item:hover{background:var(--bg);color:var(--text)}
+.nav-item.active{background:var(--primary-bg);color:var(--primary);border-left-color:var(--primary);font-weight:600}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{padding:14px 24px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.topbar h1{font-size:16px;font-weight:700}
+.content{flex:1;overflow-y:auto;padding:22px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px}
+.card-title{font-size:13px;font-weight:600;margin-bottom:14px}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.metric-val{font-size:24px;font-weight:700}
+.metric-lbl{font-size:12px;color:var(--text3);margin-top:2px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:11px;font-weight:700;color:var(--text3);padding:8px 12px;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:11px 12px;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:middle}
+td.s{color:var(--text);font-weight:500}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg)}
+.badge{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:99px}
+.b-green{background:var(--green-bg);color:var(--green)}
+.b-blue{background:var(--primary-bg);color:var(--primary)}
+.b-amber{background:var(--amber-bg);color:var(--amber)}
+.b-red{background:var(--red-bg);color:var(--red)}
+.b-gray{background:#f1f2f6;color:#5a5a7a}
+.b-purple{background:var(--purple-bg);color:var(--purple)}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:8px 14px;border:1px solid var(--border2);border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;background:var(--surface);color:var(--text);transition:all .1s;white-space:nowrap}
+.btn:hover{background:var(--bg)}
+.btn-primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+.btn-primary:hover{opacity:.85;background:var(--primary)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-danger{color:var(--red);border-color:#f0a0a0}
+.btn-danger:hover{background:var(--red-bg)}
+.btn-success{color:var(--green);border-color:#a0d890}
+.btn-success:hover{background:var(--green-bg)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group.full{grid-column:1/-1}
+label{font-size:12px;font-weight:600;color:var(--text2)}
+input,select,textarea{padding:9px 12px;border:1.5px solid var(--border2);border-radius:8px;font-size:13px;background:var(--surface);color:var(--text);font-family:inherit;width:100%}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)}
+.avatar{width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+#toast{position:fixed;bottom:20px;right:20px;background:var(--text);color:#fff;padding:10px 18px;border-radius:99px;font-size:13px;font-weight:500;opacity:0;transition:opacity .2s;pointer-events:none;z-index:999}
+#toast.show{opacity:1}
+.page{display:none}.page.active{display:block}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.loading{text-align:center;padding:40px;color:var(--text3)}
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:100}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border-radius:14px;padding:24px;width:560px;max-width:96vw;max-height:92vh;overflow-y:auto}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:16px}
+.img-upload{border:2px dashed var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;transition:all .15s;background:var(--bg)}
+.img-upload:hover{border-color:var(--primary);background:var(--primary-bg)}
+.img-upload input{display:none}
+.img-preview{width:100%;max-height:140px;object-fit:contain;border-radius:8px;margin-top:8px}
+/* Plan cards */
+.plan-cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.plan-card{border:2px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:all .15s}
+.plan-card.selected{border-color:var(--primary);background:var(--primary-bg)}
+.plan-card.pro-card{border-color:var(--purple)}
+.plan-card.pro-card.selected{background:var(--purple-bg);border-color:var(--purple)}
+.plan-card h4{font-size:14px;font-weight:700;margin-bottom:4px}
+.plan-card .plan-price{font-size:18px;font-weight:800;margin:6px 0}
+.plan-card ul{list-style:none;font-size:12px;color:var(--text2)}
+.plan-card ul li{padding:2px 0}
+.plan-card ul li::before{content:'✓ ';color:var(--green);font-weight:700}
+.pro-card h4{color:var(--purple)}
+.sidebar-footer{margin-top:auto;padding:14px 16px;border-top:1px solid var(--border);font-size:12px;color:var(--text3)}
+</style>
 </head>
 <body>
-    <div id="app">Loading Admin Panel...</div>
-    <script>
-        // Use the config from config.js (don't redeclare)
-        // Check if SUPABASE_URL and SUPABASE_ANON_KEY are available
-        if (typeof SUPABASE_URL !== 'undefined' && typeof SUPABASE_ANON_KEY !== 'undefined') {
-            const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            document.getElementById('app').innerHTML = '<h1>Admin Dashboard</h1><p>Connected to Supabase!</p><button onclick="testConnection()">Test Connection</button>';
-            
-            window.testConnection = async function() {
-                const { data, error } = await supabaseClient.from('clients').select('count');
-                if(error) {
-                    document.getElementById('app').innerHTML += '<p style="color:red">Error: ' + error.message + '</p>';
-                } else {
-                    document.getElementById('app').innerHTML += '<p style="color:green">✅ Connected successfully!</p>';
-                }
-            };
-        } else {
-            document.getElementById('app').innerHTML = '<h1>Configuration Error</h1><p>config.js not loaded properly. Make sure js/config.js exists.</p>';
-        }
-    </script>
+<div id="toast"></div>
+
+<!-- Modals -->
+<div class="modal-overlay" id="client-modal"><div class="modal"><div class="modal-title" id="modal-title">Add client</div><div id="modal-body"></div></div></div>
+<div class="modal-overlay" id="order-modal"><div class="modal"><div class="modal-title">Update order</div><div id="order-modal-body"></div></div></div>
+<div class="modal-overlay" id="product-modal"><div class="modal"><div class="modal-title" id="prod-modal-title">Add product</div><div id="prod-modal-body"></div></div></div>
+<div class="modal-overlay" id="pay-modal"><div class="modal"><div class="modal-title">Record payment</div><div id="pay-modal-body"></div></div></div>
+
+<div class="app">
+<div class="sidebar">
+  <div class="sidebar-header"><div class="logo">OrderBase</div><div class="sub">Admin panel</div></div>
+  <div class="nav-section">Dashboard</div>
+  <div class="nav-item active" onclick="showPage('overview',this)">📊 Overview</div>
+  <div class="nav-section">Clients</div>
+  <div class="nav-item" onclick="showPage('clients',this)">👥 All clients</div>
+  <div class="nav-item" onclick="openAddClient()">➕ Add client</div>
+  <div class="nav-section">Business</div>
+  <div class="nav-item" onclick="showPage('orders',this)">📋 All orders</div>
+  <div class="nav-item" onclick="showPage('products',this)">📦 Products</div>
+  <div class="nav-item" onclick="showPage('payments',this)">💳 Payments</div>
+  <div class="nav-section">System</div>
+  <div class="nav-item" onclick="showPage('plans',this)">⭐ Plan limits</div>
+  <div class="nav-item" onclick="showPage('killswitch',this)">🔒 Kill switch</div>
+  <div class="sidebar-footer">OrderBase v2.0</div>
+</div>
+
+<div class="main">
+
+<!-- OVERVIEW -->
+<div id="page-overview" class="page active">
+  <div class="topbar"><h1>Overview</h1><button class="btn btn-primary" onclick="openAddClient()">+ Add client</button></div>
+  <div class="content">
+    <div class="metrics" id="overview-metrics"><div class="loading"><span class="spinner"></span></div></div>
+    <div class="grid2">
+      <div class="card"><div class="card-title">Client health</div><div id="client-health"></div></div>
+      <div class="card"><div class="card-title">Recent orders</div><div id="recent-orders"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- CLIENTS -->
+<div id="page-clients" class="page">
+  <div class="topbar"><h1>All clients</h1><button class="btn btn-primary" onclick="openAddClient()">+ New client</button></div>
+  <div class="content">
+    <div class="card" style="padding:0;overflow:hidden">
+      <table><thead><tr><th>Client</th><th>Plan</th><th>Status</th><th>Invoice</th><th>Orders</th><th>Links</th><th>Actions</th></tr></thead>
+      <tbody id="clients-table"><tr><td colspan="7" class="loading"><span class="spinner"></span></td></tr></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- ORDERS -->
+<div id="page-orders" class="page">
+  <div class="topbar"><h1>All orders</h1>
+    <div style="display:flex;gap:8px">
+      <select id="order-client-filter" onchange="loadOrders()" style="width:160px"><option value="">All clients</option></select>
+      <select id="order-status-filter" onchange="loadOrders()" style="width:140px"><option value="">All statuses</option><option>Pending</option><option>Preparing</option><option>Ready</option><option>Delivered</option><option>Cancelled</option></select>
+      <select id="order-pay-filter" onchange="loadOrders()" style="width:150px"><option value="">All payments</option><option>Slip Uploaded</option><option>Verified</option><option>Rejected</option></select>
+    </div>
+  </div>
+  <div class="content">
+    <div class="card" style="padding:0;overflow:hidden">
+      <table><thead><tr><th>#</th><th>Client</th><th>Customer</th><th>Items</th><th>Total</th><th>Payment</th><th>Status</th><th>Date</th><th></th></tr></thead>
+      <tbody id="orders-table"><tr><td colspan="9" class="loading"><span class="spinner"></span></td></tr></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- PRODUCTS -->
+<div id="page-products" class="page">
+  <div class="topbar"><h1>Products</h1><button class="btn btn-primary" onclick="openAddProduct()">+ Add product</button></div>
+  <div class="content">
+    <div style="margin-bottom:12px"><select id="prod-client-filter" onchange="loadProducts()" style="width:220px"><option value="">All clients</option></select></div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <table><thead><tr><th>Photo</th><th>Client</th><th>Name</th><th>Category</th><th>Price</th><th>Sizes</th><th>Status</th><th></th></tr></thead>
+      <tbody id="products-table"><tr><td colspan="8" class="loading"><span class="spinner"></span></td></tr></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- PAYMENTS -->
+<div id="page-payments" class="page">
+  <div class="topbar"><h1>Payments</h1><button class="btn btn-primary" onclick="openRecordPayment()">+ Record payment</button></div>
+  <div class="content">
+    <div class="card" style="padding:0;overflow:hidden">
+      <table><thead><tr><th>Client</th><th>Amount</th><th>Type</th><th>Reference</th><th>Date</th><th>Notes</th></tr></thead>
+      <tbody id="payments-table"><tr><td colspan="6" class="loading"><span class="spinner"></span></td></tr></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- PLANS -->
+<div id="page-plans" class="page">
+  <div class="topbar"><h1>Plan limits</h1></div>
+  <div class="content">
+    <div class="grid2">
+      <div class="card" style="border:2px solid var(--border)">
+        <div style="font-size:16px;font-weight:700;margin-bottom:4px">Normal Plan</div>
+        <div style="font-size:22px;font-weight:800;margin-bottom:12px;color:var(--primary)">LKR 3,500<span style="font-size:13px;font-weight:400;color:var(--text2)">/mo</span></div>
+        <ul style="list-style:none;font-size:13px;color:var(--text2)">
+          <li style="padding:5px 0;border-bottom:1px solid var(--border)">📦 Max 100 orders/month</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--border)">🛍 Max 20 products</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--border)">📊 Basic dashboard</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--border)">📧 Email support</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--border)">❌ No analytics</li>
+          <li style="padding:5px 0">❌ No custom branding</li>
+        </ul>
+      </div>
+      <div class="card" style="border:2px solid var(--purple);background:linear-gradient(135deg,#faf9ff,#f0eeff)">
+        <div style="font-size:16px;font-weight:700;margin-bottom:4px;color:var(--purple)">⭐ Pro Plan</div>
+        <div style="font-size:22px;font-weight:800;margin-bottom:12px;color:var(--purple)">LKR 5,500<span style="font-size:13px;font-weight:400;color:var(--text2)">/mo</span></div>
+        <ul style="list-style:none;font-size:13px;color:var(--text2)">
+          <li style="padding:5px 0;border-bottom:1px solid var(--border)">📦 Unlimited orders</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--border)">🛍 Max 100 products</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--border)">📊 Advanced dashboard</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--border)">📞 Priority support</li>
+          <li style="padding:5px 0;border-bottom:1px solid var(--border)">✅ Analytics</li>
+          <li style="padding:5px 0">✅ Custom branding & logo</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Clients by plan</div>
+      <table><thead><tr><th>Client</th><th>Plan</th><th>Orders/mo limit</th><th>Products limit</th><th>Change plan</th></tr></thead>
+      <tbody id="plan-table"><tr><td colspan="5" class="loading"><span class="spinner"></span></td></tr></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- KILL SWITCH -->
+<div id="page-killswitch" class="page">
+  <div class="topbar"><h1>Kill switch</h1><button class="btn btn-primary" onclick="runKillSwitch()">▶ Run now</button></div>
+  <div class="content">
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">How it works</div>
+        <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:10px">Every Active client whose <strong>Next Invoice Date</strong> has passed automatically becomes <strong>Past Due</strong>. Their dashboard shows a locked screen.</p>
+        <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:10px">To reinstate: record payment → edit client → set status to Active + update invoice date.</p>
+        <div style="background:var(--bg);border-radius:8px;padding:12px;font-size:12px;color:var(--text3);font-family:monospace">-- Auto-run daily via pg_cron:<br>select cron.schedule(<br>&nbsp;&nbsp;'kill-switch',<br>&nbsp;&nbsp;'0 9 * * *',<br>&nbsp;&nbsp;'select run_kill_switch()'<br>);</div>
+      </div>
+      <div class="card"><div class="card-title">Client status</div><div id="kill-client-list"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Automation log</div>
+      <table><thead><tr><th>Time</th><th>Checked</th><th>Locked</th><th>Message</th></tr></thead>
+      <tbody id="kill-log"></tbody></table>
+    </div>
+  </div>
+</div>
+
+</div>
+</div>
+
+<script>
+const { createClient } = supabase;
+const SUPABASE_URL = 'https://tnuedzooieppwutpmwqc.supabase.co';
+const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRudWVkem9vaWVwcHd1dHBtd3FjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTYzNjQ1OCwiZXhwIjoyMDk1MjEyNDU4fQ.0oI88iVRk0DjNkmr_0Muf-zwhCRmQ9EtJMuNna99AJM';
+const ORDER_FORM_URL = 'order.html';
+const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+function toast(msg,dur=2500){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
+function fmt(n){return 'LKR '+(n||0).toLocaleString();}
+function fmtDate(d){return d?new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—';}
+function fmtDateFull(d){return d?new Date(d).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—';}
+
+function statusBadge(s){
+  const m={Active:'b-green',Trial:'b-blue','Past Due':'b-red',Cancelled:'b-gray',Pending:'b-amber',Preparing:'b-blue',Ready:'b-purple',Delivered:'b-green'};
+  return `<span class="badge ${m[s]||'b-gray'}">${s}</span>`;
+}
+function payBadge(s){
+  const m={'Pending':'b-gray','Slip Uploaded':'b-amber','Verified':'b-green','Rejected':'b-red'};
+  return `<span class="badge ${m[s]||'b-gray'}">💳 ${s||'Pending'}</span>`;
+}
+function planBadge(t){return t==='pro'?'<span class="badge b-purple">⭐ Pro</span>':'<span class="badge b-gray">Normal</span>';}
+function avColor(n){const c=['#e6f1fb|#185fa5','#fef3d7|#c47c0a','#e8f5ed|#2d8a4e','#fdecea|#c0392b'];let h=0;for(const x of(n||''))h+=x.charCodeAt(0);const[bg,fg]=c[h%c.length].split('|');return{bg,fg};}
+function initials(n){return(n||'??').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
+function closeModals(){document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.remove('open'));}
+document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)closeModals();}));
+
+function showPage(id,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(el)el.classList.add('active');
+  ({overview:loadOverview,clients:loadClients,orders:loadOrders,products:loadProducts,payments:loadPayments,plans:loadPlans,killswitch:loadKillSwitch}[id]||loadOverview)();
+}
+
+// ── OVERVIEW ──────────────────────────────────────────────────
+async function loadOverview(){
+  const [{data:stats},{data:orders}]=await Promise.all([
+    sb.from('client_order_stats').select('*'),
+    sb.from('orders').select('*,clients(name)').order('created_at',{ascending:false}).limit(8)
+  ]);
+  const active=(stats||[]).filter(c=>c.status==='Active');
+  const due=(stats||[]).filter(c=>c.status==='Past Due');
+  const rev=active.reduce((a,c)=>a+(c.plan_amount||0),0);
+  const tot=(stats||[]).reduce((a,c)=>a+parseInt(c.total_orders||0),0);
+  const slips=(orders||[]).filter(o=>o.payment_status==='Slip Uploaded').length;
+
+  document.getElementById('overview-metrics').innerHTML=`
+    <div class="metric"><div class="metric-val">${active.length}</div><div class="metric-lbl">Active clients</div></div>
+    <div class="metric"><div class="metric-val" style="font-size:18px">${fmt(rev)}</div><div class="metric-lbl">Monthly revenue</div></div>
+    <div class="metric"><div class="metric-val">${tot}</div><div class="metric-lbl">Total orders</div></div>
+    <div class="metric"><div class="metric-val" style="color:${slips>0?'var(--amber)':due.length?'var(--red)':'var(--green)'}">${slips>0?slips+' slips':due.length+' due'}</div><div class="metric-lbl">${slips>0?'Slips to verify':'Past due'}</div></div>`;
+
+  document.getElementById('client-health').innerHTML=(stats||[]).map(c=>{
+    const av=avColor(c.client_name);
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:8px"><div class="avatar" style="background:${av.bg};color:${av.fg}">${initials(c.client_name)}</div>
+      <div><div style="font-size:13px;font-weight:600">${c.client_name}</div><div style="font-size:11px;color:var(--text3)">${c.total_orders} orders · ${fmt(c.plan_amount)}/mo</div></div></div>
+      <div style="display:flex;gap:4px;align-items:center">${planBadge(c.plan_type)} ${statusBadge(c.status)}</div></div>`;
+  }).join('')||'<div style="color:var(--text3);padding:12px 0;font-size:13px">No clients yet</div>';
+
+  document.getElementById('recent-orders').innerHTML=(orders||[]).map(o=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)">
+      <div><div style="font-size:13px;font-weight:600">${o.customer_name}</div><div style="font-size:11px;color:var(--text3)">${o.clients?.name||''} · ${o.product_name?.split(',')[0]}</div></div>
+      <div style="text-align:right"><div style="font-size:13px;font-weight:700">${fmt(o.subtotal||o.unit_price)}</div>${statusBadge(o.status)}</div>
+    </div>`).join('')||'<div style="color:var(--text3);padding:12px 0;font-size:13px">No orders yet</div>';
+}
+
+// ── CLIENTS ───────────────────────────────────────────────────
+async function loadClients(){
+  const [{data:clients},{data:stats}]=await Promise.all([
+    sb.from('clients').select('*').order('created_at'),
+    sb.from('client_order_stats').select('*')
+  ]);
+  const tbody=document.getElementById('clients-table');
+  if(!clients?.length){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text3)">No clients yet</td></tr>';return;}
+  tbody.innerHTML=clients.map(c=>{
+    const st=stats?.find(s=>s.client_id===c.id);
+    const av=avColor(c.name);
+    const link=`${location.origin}${location.pathname.replace('admin.html','order.html')}?client=${c.form_key}`;
+    const dashlink=`${location.origin}${location.pathname.replace('admin.html','dashboard.html')}?client=${c.form_key}`;
+    return `<tr>
+      <td class="s"><div style="display:flex;align-items:center;gap:8px"><div class="avatar" style="background:${av.bg};color:${av.fg}">${initials(c.name)}</div><div>${c.name}<div style="font-size:11px;color:var(--text3);font-weight:400">${c.email}</div></div></div></td>
+      <td>${planBadge(c.plan_type)} <div style="font-size:11px;color:var(--text3)">${fmt(c.plan_amount)}/mo</div></td>
+      <td>${statusBadge(c.status)}</td>
+      <td style="font-size:12px">${fmtDate(c.next_invoice)}</td>
+      <td>${st?.total_orders||0}</td>
+      <td><div style="display:flex;gap:4px"><button class="btn btn-sm" onclick="copyLink('${link}')">📋 Order</button><button class="btn btn-sm" onclick="copyLink('${dashlink}')">📊 Dash</button></div></td>
+      <td><div style="display:flex;gap:5px">
+        <button class="btn btn-sm" onclick="openEditClient('${c.id}')">Edit</button>
+        ${c.status==='Past Due'?`<button class="btn btn-sm btn-success" onclick="setStatus('${c.id}','Active')">Unlock</button>`:c.status!=='Cancelled'?`<button class="btn btn-sm btn-danger" onclick="setStatus('${c.id}','Past Due')">Lock</button>`:''}
+      </div></td></tr>`;
+  }).join('');
+}
+function copyLink(url){navigator.clipboard.writeText(url).catch(()=>{});toast('Link copied!');}
+async function setStatus(id,status){await sb.from('clients').update({status}).eq('id',id);toast('Status → '+status);loadClients();loadOverview();}
+
+// ── ADD/EDIT CLIENT ───────────────────────────────────────────
+let _editId=null;
+function openAddClient(){_editId=null;document.getElementById('modal-title').textContent='Add new client';renderClientForm({});document.getElementById('client-modal').classList.add('open');}
+async function openEditClient(id){
+  const {data:c}=await sb.from('clients').select('*').eq('id',id).single();
+  _editId=id;document.getElementById('modal-title').textContent='Edit — '+c.name;
+  renderClientForm(c);document.getElementById('client-modal').classList.add('open');
+}
+function renderClientForm(c){
+  const isPro=c.plan_type==='pro';
+  document.getElementById('modal-body').innerHTML=`
+    <div class="form-grid">
+      <div class="form-group"><label>Business name *</label><input id="cf-name" value="${c.name||''}" placeholder="Royal Cake"></div>
+      <div class="form-group"><label>Owner name *</label><input id="cf-owner" value="${c.owner_name||''}" placeholder="Amal Perera"></div>
+      <div class="form-group"><label>Email *</label><input id="cf-email" type="email" value="${c.email||''}" placeholder="amal@royalcake.lk"></div>
+      <div class="form-group"><label>Phone</label><input id="cf-phone" value="${c.phone||''}" placeholder="+94 77 ..."></div>
+      <div class="form-group"><label>Business type</label><select id="cf-type">${['Food & bakery','Fashion & clothing','Home & gifts','Electronics','Services','Other'].map(t=>`<option${c.business_type===t?' selected':''}>${t}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Brand color</label><input id="cf-color" type="color" value="${c.branding_color||'#185fa5'}" style="height:42px;padding:4px"></div>
+      <div class="form-group full"><label>Shop description (shown on order form)</label><input id="cf-desc" value="${c.shop_description||''}" placeholder="Sri Lanka's finest custom cakes"></div>
+    </div>
+    <div style="margin:14px 0 8px;font-size:12px;font-weight:600;color:var(--text2)">Select plan</div>
+    <div class="plan-cards">
+      <div class="plan-card ${!isPro?'selected':''}" id="plan-normal" onclick="selectPlan('normal')">
+        <h4>Normal</h4>
+        <div class="plan-price" style="color:var(--primary)">LKR 3,500<span style="font-size:12px;font-weight:400">/mo</span></div>
+        <ul><li>100 orders/month</li><li>20 products</li><li>Basic dashboard</li></ul>
+      </div>
+      <div class="plan-card pro-card ${isPro?'selected':''}" id="plan-pro" onclick="selectPlan('pro')">
+        <h4>⭐ Pro</h4>
+        <div class="plan-price" style="color:var(--purple)">LKR 5,500<span style="font-size:12px;font-weight:400">/mo</span></div>
+        <ul><li>Unlimited orders</li><li>100 products</li><li>Advanced + analytics</li></ul>
+      </div>
+    </div>
+    ${!_editId?`
+      <div class="form-grid" style="margin-top:12px">
+        <div class="form-group"><label>Form key (no spaces) *</label><input id="cf-fk" placeholder="RoyalCake" oninput="this.value=this.value.replace(/\\s/g,'');document.getElementById('fk-prev').textContent=this.value||'...'"></div>
+        <div class="form-group"><label>Trial days</label><input id="cf-trial" type="number" value="14"></div>
+      </div>
+      <div style="background:var(--bg);border-radius:8px;padding:10px;font-size:12px;color:var(--text3);margin-top:6px">Order form: <span style="font-family:monospace">order.html?client=<span id="fk-prev">...</span></span></div>
+    `:`
+      <div class="form-grid" style="margin-top:12px">
+        <div class="form-group"><label>Status</label><select id="cf-status">${['Trial','Active','Past Due','Cancelled'].map(s=>`<option${c.status===s?' selected':''}>${s}</option>`).join('')}</select></div>
+        <div class="form-group"><label>Next invoice date</label><input id="cf-inv" type="date" value="${c.next_invoice||''}"></div>
+      </div>
+    `}
+    <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
+      <button class="btn" onclick="closeModals()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveClient()">${_editId?'Save changes':'Add client'}</button>
+    </div>`;
+
+  window._selectedPlan = c.plan_type||'normal';
+  if(!_editId){
+    document.getElementById('cf-name').addEventListener('input',e=>{
+      const fk=document.getElementById('cf-fk');
+      if(!fk._t)fk.value=e.target.value.replace(/\s+/g,'');
+      document.getElementById('fk-prev').textContent=fk.value||'...';
+    });
+    document.getElementById('cf-fk').addEventListener('keydown',()=>{document.getElementById('cf-fk')._t=true;});
+  }
+}
+function selectPlan(type){
+  window._selectedPlan=type;
+  document.querySelectorAll('.plan-card').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('plan-'+type).classList.add('selected');
+}
+async function saveClient(){
+  const name=document.getElementById('cf-name').value.trim();
+  const owner=document.getElementById('cf-owner').value.trim();
+  const email=document.getElementById('cf-email').value.trim();
+  if(!name||!owner||!email){toast('Name, owner, email required');return;}
+  const isPro=window._selectedPlan==='pro';
+  const payload={name,owner_name:owner,email,
+    phone:document.getElementById('cf-phone').value.trim()||null,
+    business_type:document.getElementById('cf-type').value,
+    branding_color:document.getElementById('cf-color').value,
+    shop_description:document.getElementById('cf-desc').value.trim()||null,
+    plan_type:window._selectedPlan,
+    plan_amount:isPro?5500:3500,
+    max_orders:isPro?999999:100,
+    max_products:isPro?100:20
+  };
+  if(_editId){
+    payload.status=document.getElementById('cf-status').value;
+    payload.next_invoice=document.getElementById('cf-inv').value||null;
+    const {error}=await sb.from('clients').update(payload).eq('id',_editId);
+    if(error){toast('Error: '+error.message);return;}
+    toast(name+' updated');
+  } else {
+    const fk=document.getElementById('cf-fk').value.trim();
+    const trial=parseInt(document.getElementById('cf-trial').value)||14;
+    if(!fk){toast('Form key required');return;}
+    const te=new Date();te.setDate(te.getDate()+trial);
+    const ni=new Date(te);ni.setDate(ni.getDate()+30);
+    Object.assign(payload,{form_key:fk,status:'Trial',trial_end:te.toISOString().slice(0,10),next_invoice:ni.toISOString().slice(0,10)});
+    const {error}=await sb.from('clients').insert(payload);
+    if(error){toast('Error: '+error.message);return;}
+    toast(name+' added! Form: order.html?client='+fk,4000);
+  }
+  closeModals();loadClients();loadOverview();
+}
+
+// ── ORDERS ────────────────────────────────────────────────────
+async function loadOrders(){
+  const {data:clients}=await sb.from('clients').select('id,name').order('name');
+  const sel=document.getElementById('order-client-filter');
+  const cv=sel.value;
+  sel.innerHTML='<option value="">All clients</option>'+(clients||[]).map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  sel.value=cv;
+  let q=sb.from('orders').select('*,clients(name)').order('created_at',{ascending:false}).limit(300);
+  if(sel.value)q=q.eq('client_id',sel.value);
+  const sf=document.getElementById('order-status-filter').value;
+  const pf=document.getElementById('order-pay-filter').value;
+  if(sf)q=q.eq('status',sf);
+  if(pf)q=q.eq('payment_status',pf);
+  const {data:orders}=await q;
+  const tbody=document.getElementById('orders-table');
+  if(!orders?.length){tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text3)">No orders found</td></tr>';return;}
+  tbody.innerHTML=orders.map(o=>`<tr>
+    <td class="s" style="font-family:monospace;font-size:12px">ORD-${String(o.order_number).padStart(3,'0')}</td>
+    <td>${o.clients?.name||'—'}</td>
+    <td>${o.customer_name}<div style="font-size:11px;color:var(--text3)">${o.customer_phone||''}</div>${o.customer_address?`<div style="font-size:11px;color:var(--text3)">📍 ${o.customer_address}</div>`:''}</td>
+    <td style="font-size:12px;max-width:180px">${o.product_name?.split(',').slice(0,2).join(', ')||'—'}${o.product_name?.split(',').length>2?'...':''}</td>
+    <td>${fmt(o.subtotal||o.unit_price)}</td>
+    <td>${payBadge(o.payment_status)}${o.bank_slip_url?`<br><a href="${o.bank_slip_url}" target="_blank" style="font-size:11px;color:var(--primary)">View slip</a>`:''}${o.payment_method==='COD'?'<div style="font-size:11px;color:var(--text3)">💵 COD</div>':''}</td>
+    <td>${statusBadge(o.status)}</td>
+    <td style="font-size:12px">${fmtDateFull(o.created_at)}</td>
+    <td><button class="btn btn-sm" onclick="openUpdateOrder('${o.id}','${o.status}','${o.payment_status||'Pending'}','${o.customer_name}')">Update</button></td>
+  </tr>`).join('');
+}
+function openUpdateOrder(id,cs,cps,name){
+  document.getElementById('order-modal-body').innerHTML=`
+    <p style="font-size:13px;color:var(--text2);margin-bottom:14px">Order for <strong>${name}</strong></p>
+    <div class="form-grid">
+      <div class="form-group"><label>Order status</label><select id="new-status">${['Pending','Preparing','Ready','Delivered','Cancelled'].map(s=>`<option${s===cs?' selected':''}>${s}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Payment status</label><select id="new-pay-status">${['Pending','Slip Uploaded','Verified','Rejected'].map(s=>`<option${s===cps?' selected':''}>${s}</option>`).join('')}</select></div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn" onclick="closeModals()">Cancel</button><button class="btn btn-primary" onclick="saveOrderUpdate('${id}')">Save</button></div>`;
+  document.getElementById('order-modal').classList.add('open');
+}
+async function saveOrderUpdate(id){
+  const status=document.getElementById('new-status').value;
+  const payment_status=document.getElementById('new-pay-status').value;
+  await sb.from('orders').update({status,payment_status}).eq('id',id);
+  toast('Order updated');closeModals();loadOrders();
+}
+
+// ── PRODUCTS ──────────────────────────────────────────────────
+async function loadProducts(){
+  const {data:clients}=await sb.from('clients').select('id,name').order('name');
+  const psel=document.getElementById('prod-client-filter');
+  const cv=psel.value;
+  psel.innerHTML='<option value="">All clients</option>'+(clients||[]).map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  psel.value=cv;
+  let q=sb.from('products').select('*,clients(name)').order('category');
+  if(psel.value)q=q.eq('client_id',psel.value);
+  const {data:prods}=await q;
+  const tbody=document.getElementById('products-table');
+  if(!prods?.length){tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text3)">No products yet</td></tr>';return;}
+  tbody.innerHTML=prods.map(p=>`<tr>
+    <td>${p.image_url?`<img src="${p.image_url}" style="width:44px;height:44px;border-radius:8px;object-fit:cover">`:`<div style="width:44px;height:44px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:20px">📦</div>`}</td>
+    <td>${p.clients?.name||'—'}</td>
+    <td class="s">${p.name}${p.description?`<div style="font-size:11px;color:var(--text3)">${p.description.slice(0,40)}...</div>`:''}</td>
+    <td><span class="badge b-gray">${p.category||'—'}</span></td>
+    <td>${fmt(p.price)}</td>
+    <td style="font-size:12px">${p.has_sizes&&p.sizes?p.sizes:'—'}</td>
+    <td><span class="badge ${p.active?'b-green':'b-gray'}">${p.active?'Active':'Hidden'}</span></td>
+    <td><div style="display:flex;gap:5px">
+      <button class="btn btn-sm" onclick="openEditProduct('${p.id}')">Edit</button>
+      <button class="btn btn-sm ${p.active?'btn-danger':'btn-success'}" onclick="toggleProduct('${p.id}',${!p.active})">${p.active?'Hide':'Show'}</button>
+    </div></td>
+  </tr>`).join('');
+}
+async function toggleProduct(id,active){await sb.from('products').update({active}).eq('id',id);loadProducts();}
+
+async function openAddProduct(){
+  const {data:clients}=await sb.from('clients').select('id,name').order('name');
+  document.getElementById('prod-modal-title').textContent='Add product';
+  renderProductForm({},clients||[]);
+  document.getElementById('product-modal').classList.add('open');
+}
+async function openEditProduct(id){
+  const [{data:p},{data:clients}]=await Promise.all([
+    sb.from('products').select('*').eq('id',id).single(),
+    sb.from('clients').select('id,name').order('name')
+  ]);
+  document.getElementById('prod-modal-title').textContent='Edit — '+p.name;
+  renderProductForm(p,clients||[],id);
+  document.getElementById('product-modal').classList.add('open');
+}
+
+let _prodImgFile=null;
+function renderProductForm(p,clients,editId){
+  _prodImgFile=null;
+  document.getElementById('prod-modal-body').innerHTML=`
+    <div class="form-grid">
+      <div class="form-group full"><label>Client *</label><select id="pf-client">${clients.map(c=>`<option value="${c.id}"${c.id===p.client_id?' selected':''}>${c.name}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Product name *</label><input id="pf-name" value="${p.name||''}" placeholder="Chocolate Fudge Cake"></div>
+      <div class="form-group"><label>Category</label><input id="pf-cat" value="${p.category||''}" placeholder="Whole cakes"></div>
+      <div class="form-group"><label>Price (LKR) *</label><input id="pf-price" type="number" value="${p.price||''}"></div>
+      <div class="form-group"><label>Description</label><input id="pf-desc" value="${p.description||''}" placeholder="Rich chocolate layers..."></div>
+      <div class="form-group full">
+        <label><input type="checkbox" id="pf-hassizes" ${p.has_sizes?'checked':''} onchange="document.getElementById('sizes-row').style.display=this.checked?'block':'none'"> This product has sizes (e.g. clothing)</label>
+      </div>
+      <div class="form-group full" id="sizes-row" style="display:${p.has_sizes?'block':'none'}">
+        <label>Size options (comma separated)</label>
+        <input id="pf-sizes" value="${p.sizes||''}" placeholder="S, M, L, XL, XXL">
+      </div>
+      <div class="form-group full">
+        <label>Product photo</label>
+        <div class="img-upload" onclick="document.getElementById('pf-img-input').click()">
+          <input type="file" id="pf-img-input" accept="image/*" onchange="previewProdImg(this)">
+          ${p.image_url?`<img src="${p.image_url}" class="img-preview" id="pf-img-preview">`:`<div style="font-size:28px;margin-bottom:4px">🖼</div><div style="font-size:13px;font-weight:600;color:var(--text2)" id="pf-img-label">Click to upload photo</div><div style="font-size:11px;color:var(--text3)">JPG, PNG — max 5MB</div><img id="pf-img-preview" class="img-preview" style="display:none">`}
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+      <button class="btn" onclick="closeModals()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProduct(${editId?`'${editId}'`:'null'})">Save product</button>
+    </div>`;
+}
+
+function previewProdImg(input){
+  const file=input.files[0];if(!file)return;
+  _prodImgFile=file;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const img=document.getElementById('pf-img-preview');
+    img.src=e.target.result;img.style.display='block';
+    const lbl=document.getElementById('pf-img-label');
+    if(lbl)lbl.textContent='✓ Photo ready';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function saveProduct(editId){
+  const name=document.getElementById('pf-name').value.trim();
+  const price=parseInt(document.getElementById('pf-price').value);
+  if(!name||!price){toast('Name and price required');return;}
+
+  let image_url=null;
+  if(_prodImgFile){
+    const fname=Date.now()+'_'+_prodImgFile.name.replace(/\s/g,'_');
+    const {data,error}=await sb.storage.from('products').upload(fname,_prodImgFile,{contentType:_prodImgFile.type,upsert:true});
+    if(!error){const{data:u}=sb.storage.from('products').getPublicUrl(fname);image_url=u.publicUrl;}
+    else toast('Image upload failed: '+error.message);
+  }
+
+  const payload={
+    client_id:document.getElementById('pf-client').value,
+    name,price,
+    category:document.getElementById('pf-cat').value||null,
+    description:document.getElementById('pf-desc').value||null,
+    has_sizes:document.getElementById('pf-hassizes').checked,
+    sizes:document.getElementById('pf-hassizes').checked?(document.getElementById('pf-sizes').value||null):null,
+  };
+  if(image_url)payload.image_url=image_url;
+
+  if(editId){await sb.from('products').update(payload).eq('id',editId);toast('Product updated');}
+  else{await sb.from('products').insert(payload);toast('Product added');}
+  closeModals();loadProducts();
+}
+
+// ── PAYMENTS ──────────────────────────────────────────────────
+async function loadPayments(){
+  const {data}=await sb.from('payments').select('*,clients(name)').order('paid_at',{ascending:false});
+  const tbody=document.getElementById('payments-table');
+  if(!data?.length){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text3)">No payments yet</td></tr>';return;}
+  tbody.innerHTML=data.map(p=>`<tr><td class="s">${p.clients?.name||'—'}</td><td>${fmt(p.amount)}</td><td><span class="badge b-gray">${p.type}</span></td><td style="font-family:monospace;font-size:12px">${p.reference||'—'}</td><td style="font-size:12px">${fmtDate(p.paid_at)}</td><td style="font-size:12px;color:var(--text3)">${p.notes||''}</td></tr>`).join('');
+}
+async function openRecordPayment(){
+  const {data:clients}=await sb.from('clients').select('id,name').order('name');
+  document.getElementById('pay-modal-body').innerHTML=`
+    <div class="form-grid">
+      <div class="form-group full"><label>Client *</label><select id="py-client">${(clients||[]).map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Amount (LKR) *</label><input id="py-amount" type="number" placeholder="5500"></div>
+      <div class="form-group"><label>Type</label><select id="py-type"><option>Monthly</option><option>Setup</option><option>Refund</option></select></div>
+      <div class="form-group"><label>Reference</label><input id="py-ref" placeholder="TRX-001"></div>
+      <div class="form-group"><label>Date</label><input id="py-date" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+      <div class="form-group"><label>Notes</label><input id="py-notes" placeholder="Bank transfer..."></div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn" onclick="closeModals()">Cancel</button><button class="btn btn-primary" onclick="savePayment()">Record</button></div>`;
+  document.getElementById('pay-modal').classList.add('open');
+}
+async function savePayment(){
+  const amount=parseInt(document.getElementById('py-amount').value);
+  if(!amount){toast('Amount required');return;}
+  await sb.from('payments').insert({client_id:document.getElementById('py-client').value,amount,type:document.getElementById('py-type').value,reference:document.getElementById('py-ref').value||null,paid_at:new Date(document.getElementById('py-date').value).toISOString(),notes:document.getElementById('py-notes').value||null});
+  toast('Payment recorded');closeModals();loadPayments();
+}
+
+// ── PLANS ─────────────────────────────────────────────────────
+async function loadPlans(){
+  const {data:clients}=await sb.from('clients').select('id,name,plan_type,max_orders,max_products,status').order('name');
+  const tbody=document.getElementById('plan-table');
+  if(!clients?.length){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text3)">No clients</td></tr>';return;}
+  tbody.innerHTML=clients.map(c=>`<tr>
+    <td class="s">${c.name}</td>
+    <td>${planBadge(c.plan_type)}</td>
+    <td>${c.max_orders>=999999?'Unlimited':c.max_orders}</td>
+    <td>${c.max_products}</td>
+    <td><button class="btn btn-sm ${c.plan_type==='pro'?'btn-danger':'btn-success'}" onclick="togglePlan('${c.id}','${c.plan_type}')">${c.plan_type==='pro'?'Downgrade to Normal':'Upgrade to Pro ⭐'}</button></td>
+  </tr>`).join('');
+}
+async function togglePlan(id,current){
+  const isPro=current!=='pro';
+  await sb.from('clients').update({plan_type:isPro?'pro':'normal',plan_amount:isPro?5500:3500,max_orders:isPro?999999:100,max_products:isPro?100:20}).eq('id',id);
+  toast('Plan updated');loadPlans();
+}
+
+// ── KILL SWITCH ───────────────────────────────────────────────
+async function loadKillSwitch(){
+  const [{data:clients},{data:log}]=await Promise.all([
+    sb.from('clients').select('name,status,next_invoice').order('name'),
+    sb.from('automation_log').select('*').order('run_at',{ascending:false}).limit(20)
+  ]);
+  document.getElementById('kill-client-list').innerHTML=(clients||[]).map(c=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)">
+      <div><div style="font-size:13px;font-weight:600">${c.name}</div><div style="font-size:11px;color:var(--text3)">Invoice: ${fmtDate(c.next_invoice)}</div></div>
+      ${statusBadge(c.status)}
+    </div>`).join('');
+  const kl=document.getElementById('kill-log');
+  kl.innerHTML=(log||[]).length?(log||[]).map(l=>`<tr><td style="font-size:12px;font-family:monospace">${new Date(l.run_at).toLocaleString('en-GB')}</td><td>${l.clients_checked}</td><td>${l.clients_locked}</td><td style="font-size:12px">${l.message}</td></tr>`).join(''):'<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text3)">No runs yet</td></tr>';
+}
+async function runKillSwitch(){
+  const {data,error}=await sb.rpc('run_kill_switch');
+  if(error){toast('Error: '+error.message);return;}
+  toast(data.locked>0?`Locked ${data.locked} client(s)`:'All clients clear');
+  loadKillSwitch();loadOverview();loadClients();
+}
+
+loadOverview();
+</script>
 </body>
 </html>
